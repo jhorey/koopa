@@ -1,0 +1,6 @@
+include LICENSE
+include requirements.txt
+include *.md
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *~
