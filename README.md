@@ -1,77 +1,39 @@
-Ferry: Big Data Development Environment using Docker
-====================================================
+# Koopa
 
-Ferry lets you launch, run, and manage big data clusters on AWS, OpenStack, and your local machine. It does this by leveraging awesome technologies such as 
-[Docker](https://www.docker.io). Ferry currently supports:
+Koopa is a [Drake](https://github.com/Factual/drake) to [Luigi](https://github.com/spotify/luigi) converter. 
 
-* Hadoop/YARN (version 2.5.1)
-* Cassandra (version 2.1.0) + Titan (0.3.1)
-* Spark (version 1.1.0)
-* GlusterFS (version 3.5)
-* Open MPI (version 1.8.1)
+Both Drake and Luigi are great data-oriented workflow tools. Drake is really great for local development. It's super simple for data scientists and engineers to set up their pipeline using whatever tool makes sense. Luigi, on the other hand, is super powerful with really great Python integration making it great for production pipelines, but less ideal for development. 
 
-All you have to do to start is specify your stack using YAML or download a pre-existing application. 
+Koopa is an implementation of Drake that outputs Luigi code. Developers get all the nice development features of Drake with the added bonus that the output can be easily integrated into production pipelines. 
 
-Why?
-====
+## Status
 
-Ferry is made for developers and data scientists that want to develop big data applications without the fuss of setting up the infrastructure. It will help you: 
+This project is under active development is not ready for any real use. 
 
-* Experiment with big data technologies, such as Hadoop or Cassandra without having to learn the intricacies of configuring each software
-* Share and evaluate other people's big data application quickly and safely via Dockerfiles
-* Develop and test applications locally before being deployed onto an operational cluster
+## Installation
 
-Because Ferry uses Docker underneath, each virtual cluster is completely isolated. That means you can create multiple clusters for different applications.
+Run `pip install koopa` to install the latest version from PyPI. 
 
-Getting started
-===============
+If you prefer to install from source, first `git clone https://github.com/jhorey/koopa.git` and then `python setup.py install`. 
 
-Ferry is a Python application and runs on your local machine. All you have to do to get started is have
-`docker` installed and type the following `pip install -U ferry`. More detailed installation instructions and examples can be found [here](http://ferry.opencore.io). 
+## Getting started
 
+Koopa is designed to be a drop-in replacement for Drake. So by default, Koopa will search for `./Drakefile`. In the same directory, type:
 
-Once installed, you can create your big data application using YAML files. 
-
-```yaml
-   backend:
-      - storage:
-           personality: "gluster"
-           instances: 2
-        compute:
-           - personality: "yarn"
-             instances: 2
-   connectors:
-      - personality: "hadoop-client"
-        name: "control-0"
+```bash
+   $ koopa
 ```
 
-This stack consists of two GlusterFS data nodes, and two Hadoop/YARN compute nodes. There's also an Ubuntu-based
-client that automatically connects to those backend components. Of course you can substitute your own
-customized client. 
+If you would rather specify the workflow file, type:
 
-To create this stack, just type `ferry start yarn`. Once you create the stack, 
-you can log in by typing `ferry ssh control-0`. 
+```bash
+   $ koopa -w /myworkflow/my-workflow.drake
+```
 
-Contributing
-============
+## How it works
 
-Contributions are totally welcome. Here are some suggestions on how to get started:
+If you're using Koopa interactively, Koopa will dynamically translate your Drakefile into equivalent Luigi Python scripts. It will then automatically run these Luigi scripts. You can also get Koopa to save the generated Luigi scripts. 
 
-* Use Ferry, report bugs, and file new features! By filing issues and sharing your experience, you will help improve the software for others.
-* Create Dockerfiles for your favorite backend, especially if you think the installation process is harder than it should be. The Dockerfile can be basic and we'll work together to get it ready for other users. 
-* Create a new configuration module for your backend. This one is more complicated since it will involve actually hacking Ferry, but it's not so hard if we work together. 
-
-I strongly recommend using GitHub issues + pull requests for contributions. Tweets sent to @open_core_io are also welcome. Happy hacking!
-
-Under the hood
-==============
-
-Ferry leverages some awesome open source projects:
-
-* [Docker](https://www.docker.io) simplifies the management of Linux containers
-* [Python](http://www.python.org) programming language
-* [Hadoop](http://hadoop.apache.org) is a general-purpose big data storage and processing framework
-* [GlusterFS](http://www.gluster.org) is a parallel filesystem actively developed by Redhat
-* [OpenMPI](http://www.open-mpi.org) is a scalable MPI implementation focused on modeling & simulation
-* [Cassandra](http://cassandra.apache.org) is a highly scalable column store
-* [PostgreSQL](http://postgresql.org) is a popular relational database
+```bash
+   $ koopa --luigi-save 
+```
