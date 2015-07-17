@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+from koopa.compiler.ast import PipelineAST
+
 class DrakeParser(object):
 
     def generate_ast(self, drake_content):
