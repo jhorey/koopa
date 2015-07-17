@@ -36,6 +36,6 @@ setup(
     install_requires=install_requires,
     entry_points="""
     [console_scripts]
-    koopa=koopa.cli.cli:main
+    koopa=koopa.client.cli:main
     """
 )
