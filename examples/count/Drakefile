@@ -1,0 +1,3 @@
+; produce an extraordinarily fancy report
+count.txt <- out.csv
+  wc $INPUT > $OUTPUT 
