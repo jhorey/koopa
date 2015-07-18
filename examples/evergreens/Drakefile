@@ -13,7 +13,7 @@ evergreens.csv <- contracts.csv
 ;
 ; Saves a super fancy report
 ;
-report.txt <- evergreens.csv 
+report.txt <- evergreens.csv [python]
   linecount = len(file("$[INPUT]").readlines())
   with open("$[OUTPUT]", "w") as f:
     f.write("File $[INPUT] has {0} lines.\n".format(linecount))
