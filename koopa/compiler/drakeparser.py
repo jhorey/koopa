@@ -28,6 +28,19 @@ class DrakeParser(object):
         """
         
         def add_AST_script(outputs, inputs, options, commands):
+            """
+            Calls add_pipeline_step() in ast.py
+            
+            Keyword arguments:
+            outputs: output files & tag dependencies
+            inputs: input files & tag dependencies
+            options: Drakefile shell & misc. options
+            commands: commands for given shell
+            
+            Returns nothing.
+            """
+            
+            # Temporary debug code
             print 'Outputs: {}'.format(' '.join(outputs))
             print 'Inputs: {}'.format(' '.join(inputs))
             print 'Options: {}'.format(' '.join(options))
