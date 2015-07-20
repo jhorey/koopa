@@ -20,23 +20,23 @@ class PipelineAST(object):
     The abstract-syntax-tree that logically represents a Drakefile.
 
     The logical representation for the pipeline:
-    [ InputOutputPair ] -> [ DrakeScript ]
+    [ InputOutputLists ] -> [ DrakeScript ]
 
     """
     pipeline = OrderedDict()
 
-    def add_pipeline_step(self, io_pair, pipeline_cmd):
+    def add_pipeline_step(self, io_lists, pipeline_cmd):
         """
         Add a new pipeline step. 
         """
-        pipeline[io_pair] = pipeline_cmd
+        pipeline[io_lists] = pipeline_cmd
 
-class InputOutputPair:
+class InputOutputLists:
     """
-    Simple pair with names of the output and input files. 
+    Simple lists with names of the output and input files. 
     """
-    input_file = None
-    output_file = None
+    input_file = list()
+    output_file = list()
 
 class DrakeScript:
     """
