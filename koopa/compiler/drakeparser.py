@@ -41,44 +41,43 @@ class DrakeParser(object):
             Returns nothing.
             """
             
-            def replace_io_keywords(commands, io_flag, vars):
+            def replace_io_keywords(commands, are_outputs, vars):
                 """
                 Replaces I/O keywords in commands with variable values.
                 
                 Keyword arguments:
                 commands: list of commands for given protocol
-                io_flag: boolean designating vars as inputs or outputs. 
+                are_outputs: boolean designating vars as inputs or outputs. 
                          False for inputs and True for outputs.
-                vars: list of input or output variables
+                vars: list of input or output variables of type string
                 
                 Returns list of new commands.
                 """
                 
-                if io_flag:
+                if are_outputs:
                     keyword = 'OUTPUT'
                 else:
                     keyword = 'INPUT'
                 for i, command in enumerate(commands):
-                    matches = set(re.findall('\$'+keyword+'\S', command))
-                    if matches != set():
-                        for match in matches:
-                            char = match[len(match)-1:]
-                            replstr = ''
-                            if char == 'N':
-                                replstr = len(vars)
-                            elif char == 'S':
-                                replstr = ' '.join(vars)
-                            elif char.isdigit():
-                                replstr = vars[int(char)]
-                            command = command.replace('$'+keyword+char, str(replstr))
-                    if vars != []:
-                        command = command.replace('$'+keyword, vars[0])
+                    matches = set(re.findall('\$'+keyword+'.', command))
+                    for match in matches:
+                        char = match[len(match)-1:]
+                        replstr = ''
+                        if char == 'N':
+                            replstr = len(vars)
+                        elif char == 'S':
+                            replstr = ' '.join(vars)
+                        elif char.isdigit():
+                            replstr = vars[int(char)]
+                        elif char == ' ':
+                            replstr = vars[0]
+                        command = command.replace('$'+keyword+char, str(replstr))
                     commands[i] = command
                 return commands
             
             # Replace input/output keywords in commands with variable values
-            commands = replace_io_keywords(commands, False, inputs)
-            commands = replace_io_keywords(commands, True, outputs)
+            commands = replace_io_keywords(commands=commands, are_outputs=False, vars=inputs)
+            commands = replace_io_keywords(commands=commands, are_outputs=True, vars=outputs)
             
             # Ignore tags in inputs and outputs
             for output, input in zip(outputs, inputs):
