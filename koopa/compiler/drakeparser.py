@@ -14,6 +14,7 @@
 #
 
 from koopa.compiler.ast import PipelineAST
+import re
 
 class DrakeParser(object):
 
@@ -29,30 +30,77 @@ class DrakeParser(object):
         
         def add_AST_script(outputs, inputs, options, commands):
             """
-            Calls add_pipeline_step() in ast.py
+            Formats arguments as input for add_pipeline_step() in ast.py
             
             Keyword arguments:
-            outputs: output files & tag dependencies
-            inputs: input files & tag dependencies
-            options: Drakefile shell & misc. options
-            commands: commands for given shell
+            outputs: list of output files & tag dependencies
+            inputs: list of input files & tag dependencies
+            options: list of Drakefile protocol & misc. options
+            commands: list of commands for given protocol
             
             Returns nothing.
             """
             
+            def replace_io_keywords(commands, io_flag, vars):
+                """
+                Replaces I/O keywords in commands with variable values.
+                
+                Keyword arguments:
+                commands: list of commands for given protocol
+                io_flag: boolean designating vars as inputs or outputs. 
+                         False for inputs and True for outputs.
+                vars: list of input or output variables
+                
+                Returns list of new commands.
+                """
+                
+                if io_flag:
+                    keyword = 'OUTPUT'
+                else:
+                    keyword = 'INPUT'
+                for i, command in enumerate(commands):
+                    matches = set(re.findall('\$'+keyword+'\S', command))
+                    if matches != set():
+                        for match in matches:
+                            char = match[len(match)-1:]
+                            replstr = ''
+                            if char == 'N':
+                                replstr = len(vars)
+                            elif char == 'S':
+                                replstr = ' '.join(vars)
+                            elif char.isdigit():
+                                replstr = vars[int(char)]
+                            command = command.replace('$'+keyword+char, str(replstr))
+                    if vars != []:
+                        command = command.replace('$'+keyword, vars[0])
+                    commands[i] = command
+                return commands
+            
+            # Replace input/output keywords in commands with variable values
+            commands = replace_io_keywords(commands, False, inputs)
+            commands = replace_io_keywords(commands, True, outputs)
+            
+            # Ignore tags in inputs and outputs
+            for output, input in zip(outputs, inputs):
+                if output != '' and output[0] == '%':
+                    outputs.remove(output)
+                if input != '' and input[0] == '%':
+                    inputs.remove(input)
+            
             # Temporary debug code
-            print 'Outputs: {}'.format(' '.join(outputs))
-            print 'Inputs: {}'.format(' '.join(inputs))
-            print 'Options: {}'.format(' '.join(options))
+            print 'Outputs: {}'.format(', '.join(outputs))
+            print 'Inputs: {}'.format(', '.join(inputs))
+            print 'Options: {}'.format(', '.join(options))
             print 'Commands:\n{}'.format('\n'.join(commands))
             return None
         
+        # Parse drake_content
         lines = drake_content.split('\n')
         seen_script = False
         for line in lines:
             if line != '' and line[0] != ';':
                 
-                # I/O line
+                # I/O and options line
                 if line[0] != ' ':
                     if seen_script:
                         # Add previous script to AST
@@ -60,19 +108,19 @@ class DrakeParser(object):
                     seen_script = True
                     
                     # Parse I/O line
-                    inputs = list()
-                    outputs = list()
                     options = list()
                     commands = list()
                     
                     parts = line.split('<-')
-                    outputs = parts[0].split(',')
-                    parts = parts[1].strip().split()
-                    inputs = parts[0].split(',')
-                    for token in parts[1:]:
-                        options.append(token.strip('[] '))
+                    outputs = [part.strip() for part in parts[0].strip().split(',')]
+                    parts = parts[1].split('[')
+                    inputs = [part.strip() for part in parts[0].strip().split(',')]
+                    if len(parts) > 1:
+                        parts = parts[1].strip().split()
+                        for token in parts:
+                            options.append(token.strip('] '))
                 
-                # Script Command
+                # Script command
                 else:
                     commands.append(line)
                 
