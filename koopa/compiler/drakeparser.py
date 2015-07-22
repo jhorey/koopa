@@ -14,6 +14,9 @@
 #
 
 from koopa.compiler.ast import PipelineAST
+from koopa.compiler.ast import InputOutputLists
+from koopa.compiler.ast import OptionCommandLists
+from koopa.compiler.ast import DrakeScript
 import re
 
 class DrakeParser(object):
@@ -86,12 +89,19 @@ class DrakeParser(object):
                 if input != '' and input[0] == '%':
                     inputs.remove(input)
             
-            # Temporary debug code
-            print 'Outputs: {}'.format(', '.join(outputs))
-            print 'Inputs: {}'.format(', '.join(inputs))
-            print 'Options: {}'.format(', '.join(options))
-            print 'Commands:\n{}'.format('\n'.join(commands))
-            return None
+            # Debug code
+            # print 'Outputs: {}'.format(', '.join(outputs))
+            # print 'Inputs: {}'.format(', '.join(inputs))
+            # print 'Options: {}'.format(', '.join(options))
+            # print 'Commands:\n{}'.format('\n'.join(commands))
+            
+            # Format inputs, outputs, arguments, commands for add_pipeline_step()
+            script_type = 'shell'
+            ast = PipelineAST()
+            io_lists = InputOutputLists(input_files=inputs, output_files=outputs)
+            opcmd_lists = OptionCommandLists(script_type=script_type, options=options, commands=commands)
+            ast.add_pipeline_step(io_lists=io_lists, opcmd_lists=opcmd_lists)
+            return ast
         
         # Parse drake_content
         lines = drake_content.split('\n')
