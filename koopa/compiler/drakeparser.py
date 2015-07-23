@@ -99,8 +99,8 @@ class DrakeParser(object):
             script_type = 'shell'
             ast = PipelineAST()
             io_lists = InputOutputLists(input_files=inputs, output_files=outputs)
-            opcmd_lists = OptionCommandLists(script_type=script_type, options=options, commands=commands)
-            ast.add_pipeline_step(io_lists=io_lists, opcmd_lists=opcmd_lists)
+            opcmd_lists = OptionCommandLists(script_type, options, commands)
+            ast.add_pipeline_step(io_lists, opcmd_lists=)
             return ast
         
         # Parse drake_content
