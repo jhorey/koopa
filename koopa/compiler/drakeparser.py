@@ -95,12 +95,23 @@ class DrakeParser(object):
             # print 'Options: {}'.format(', '.join(options))
             # print 'Commands:\n{}'.format('\n'.join(commands))
             
-            # Format inputs, outputs, arguments, commands for add_pipeline_step()
+            # Parse script type
+            # Some scripts have script-specific options
             script_type = 'shell'
+            script_types = set(['shell', 'ruby', 'python', 'eval', 'clojure', 'lein', 'cascalog', 'R', 'get'])
+            script_file_types = set(['ruby-script', 'python-script', 'jar', 'R-script'])
+            for option in options:
+                option = re.sub('protocol:', '', option)
+                if option in script_types:
+                    script_type = option
+                elif option in script_file_types:
+                    print 'Parse script_file_type'
+            
+            # Format inputs, outputs, arguments, commands for add_pipeline_step()
             ast = PipelineAST()
             io_lists = InputOutputLists(input_files=inputs, output_files=outputs)
             opcmd_lists = OptionCommandLists(script_type, options, commands)
-            ast.add_pipeline_step(io_lists, opcmd_lists=)
+            ast.add_pipeline_step(io_lists, opcmd_lists)
             return ast
         
         # Parse drake_content
