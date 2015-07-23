@@ -48,14 +48,13 @@ class OptionCommandLists:
     """
     script_type = 'shell'
     options = list()
-    commands = list()
+    script = None
     
     def __init__(self, script_type, options, commands):
         self.options = options
-        for command in commands:
-            script = DrakeScript(script_type=script_type, content=command)
-            self.commands.append(script)
-
+        content = ''.join(commands)
+        self.script = DrakeScript(script_type, content)
+            
 class DrakeScript:
     """
     Text of the command. 
