@@ -52,7 +52,7 @@ class OptionCommandLists:
     
     def __init__(self, script_type, options, commands):
         self.options = options
-        content = ''.join(commands)
+        content = '\n'.join(commands)
         self.script = DrakeScript(script_type, content)
             
 class DrakeScript:
