@@ -106,11 +106,17 @@ class DrakeParser(object):
                     script_type = option
                 elif option in script_file_types:
                     print 'Parse script_file_type'
+                    
+            # Format commands based on script type
+            if script_type == 'shell':
+                content = ';'.join(commands)
+            elif script_type == 'python':
+                content = '\n'.join(commands)
             
             # Format inputs, outputs, arguments, commands for add_pipeline_step()
             ast = PipelineAST()
             io_lists = InputOutputLists(input_files=inputs, output_files=outputs)
-            opcmd_lists = OptionCommandLists(script_type, options, commands)
+            opcmd_lists = OptionCommandLists(script_type, options, content)
             ast.add_pipeline_step(io_lists, opcmd_lists)
             return ast
         
