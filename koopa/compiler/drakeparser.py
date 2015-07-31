@@ -13,10 +13,7 @@
 # limitations under the License.
 #
 
-from koopa.compiler.ast import PipelineAST
-from koopa.compiler.ast import InputOutputLists
-from koopa.compiler.ast import OptionCommandLists
-from koopa.compiler.ast import DrakeScript
+from koopa.compiler.ast import *
 import re
 
 class DrakeParser(object):
@@ -44,25 +41,22 @@ class DrakeParser(object):
             Returns nothing.
             """
             
-            def replace_io_keywords(commands, are_outputs, vars):
+            def replace_io_keywords(content, inputs, outputs):
                 """
-                Replaces I/O keywords in commands with variable values.
+                Replaces I/O keywords in content with variable values.
                 
                 Keyword arguments:
-                commands: list of commands for given protocol
-                are_outputs: boolean designating vars as inputs or outputs. 
-                         False for inputs and True for outputs.
-                vars: list of input or output variables of type string
+                content: string of commands for given protocol
+                inputs: list of input variables of type string
+                outputs: list of output variables of type string
                 
-                Returns list of new commands.
+                Returns string of new content.
                 """
                 
-                if are_outputs:
-                    keyword = 'OUTPUT'
-                else:
-                    keyword = 'INPUT'
-                for i, command in enumerate(commands):
-                    matches = set(re.findall('\$'+keyword+'.', command))
+                keywords = ['INPUT', 'OUTPUT']
+                var_groups = [inputs, outputs]
+                for keyword, vars in zip(keywords, var_groups):
+                    matches = set(re.findall('\$'+keyword+'.', content))
                     for match in matches:
                         char = match[len(match)-1:]
                         replstr = ''
@@ -74,26 +68,8 @@ class DrakeParser(object):
                             replstr = vars[int(char)]
                         elif char == ' ':
                             replstr = vars[0]
-                        command = command.replace('$'+keyword+char, str(replstr))
-                    commands[i] = command
-                return commands
-            
-            # Replace input/output keywords in commands with variable values
-            commands = replace_io_keywords(commands=commands, are_outputs=False, vars=inputs)
-            commands = replace_io_keywords(commands=commands, are_outputs=True, vars=outputs)
-            
-            # Ignore tags in inputs and outputs
-            for output, input in zip(outputs, inputs):
-                if output != '' and output[0] == '%':
-                    outputs.remove(output)
-                if input != '' and input[0] == '%':
-                    inputs.remove(input)
-            
-            # Debug code
-            # print 'Outputs: {}'.format(', '.join(outputs))
-            # print 'Inputs: {}'.format(', '.join(inputs))
-            # print 'Options: {}'.format(', '.join(options))
-            # print 'Commands:\n{}'.format('\n'.join(commands))
+                        content = content.replace('$'+keyword+char, str(replstr))
+                return content
             
             # Parse script type
             # Some scripts have script-specific options
@@ -113,12 +89,28 @@ class DrakeParser(object):
                 content = content.replace("'", "\'")
             elif script_type == 'python':
                 content = '\n'.join(commands)
+                
+            # Replace input/output keywords in commands with variable values
+            content = replace_io_keywords(content, inputs, outputs)
             
-            # Format inputs, outputs, arguments, content for add_pipeline_step()
+            # Ignore tags in inputs and outputs
+            for output, input in zip(outputs, inputs):
+                if output != '' and output[0] == '%':
+                    outputs.remove(output)
+                if input != '' and input[0] == '%':
+                    inputs.remove(input)
+            
+            # Debug code
+            # print 'Outputs: {}'.format(', '.join(outputs))
+            # print 'Inputs: {}'.format(', '.join(inputs))
+            # print 'Options: {}'.format(', '.join(options))
+            # print 'Commands: {}'.format(commands)
+            
+            # Format inputs, outputs, options, content for add_pipeline_step()
             ast = PipelineAST()
             io_lists = InputOutputLists(input_files=inputs, output_files=outputs)
-            opcmd_lists = OptionCommandLists(script_type, options, content)
-            ast.add_pipeline_step(io_lists, opcmd_lists)
+            drake_script = DrakeScript(script_type, options, content)
+            ast.add_pipeline_step(io_lists, drake_script)
             return ast
         
         # Parse drake_content
