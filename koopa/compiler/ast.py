@@ -25,11 +25,11 @@ class PipelineAST(object):
     """
     pipeline = OrderedDict()
 
-    def add_pipeline_step(self, io_lists, opcmd_lists):
+    def add_pipeline_step(self, io_lists, drake_script):
         """
         Add a new pipeline step. 
         """
-        self.pipeline[io_lists] = opcmd_lists
+        self.pipeline[io_lists] = drake_script
 
 class InputOutputLists:
     """
@@ -42,25 +42,16 @@ class InputOutputLists:
         self.input_files = input_files
         self.output_files = output_files
     
-class OptionCommandLists:
+class DrakeScript:
     """
-    Simple lists with Drakefile options and Drake script commands.
+    Simple list of Drakefile options and Drake script content.
     """
     script_type = 'shell'
     options = list()
-    script = None
+    content = ''
     
     def __init__(self, script_type, options, content):
-        self.options = options
-        self.script = DrakeScript(script_type, content)
-            
-class DrakeScript:
-    """
-    Text of the command. 
-    """
-    content = None
-    script_type = None
-
-    def __init__(self, script_type, content):
         self.script_type = script_type
+        self.options = options
         self.content = content
+        
