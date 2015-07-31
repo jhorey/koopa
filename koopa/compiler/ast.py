@@ -50,9 +50,9 @@ class OptionCommandLists:
     options = list()
     script = None
     
-    def __init__(self, script_type, options, commands):
+    def __init__(self, script_type, options, content):
         self.options = options
-        self.script = DrakeScript(script_type, commands)
+        self.script = DrakeScript(script_type, content)
             
 class DrakeScript:
     """
