@@ -28,17 +28,18 @@ class DrakeParser(object):
         Returns an abstract-syntax-tree. 
         """
         
-        def add_AST_script(outputs, inputs, options, commands):
+        def add_AST_script(ast, outputs, inputs, options, commands):
             """
             Formats arguments as input for add_pipeline_step() in ast.py
             
             Keyword arguments:
+            ast: abstract-syntax-tree
             outputs: list of output files & tag dependencies
             inputs: list of input files & tag dependencies
             options: list of Drakefile protocol & misc. options
             commands: list of commands for given protocol
             
-            Returns nothing.
+            Returns ast.
             """
             
             def replace_io_keywords(content, inputs, outputs):
@@ -67,7 +68,7 @@ class DrakeParser(object):
                         elif char.isdigit():
                             replstr = vars[int(char)]
                         elif char == ' ':
-                            replstr = vars[0]
+                            replstr = vars[0] +' '
                         content = content.replace('$'+keyword+char, str(replstr))
                 return content
             
@@ -107,13 +108,13 @@ class DrakeParser(object):
             # print 'Commands: {}'.format(commands)
             
             # Format inputs, outputs, options, content for add_pipeline_step()
-            ast = PipelineAST()
             io_lists = InputOutputLists(input_files=inputs, output_files=outputs)
             drake_script = DrakeScript(script_type, options, content)
             ast.add_pipeline_step(io_lists, drake_script)
             return ast
         
         # Parse drake_content
+        ast = PipelineAST()
         lines = drake_content.split('\n')
         seen_script = False
         for line in lines:
@@ -123,7 +124,7 @@ class DrakeParser(object):
                 if line[0] != ' ':
                     if seen_script:
                         # Add previous script to AST
-                        add_AST_script(outputs,inputs, options, commands)
+                        ast = add_AST_script(ast, outputs,inputs, options, commands)
                     seen_script = True
                     
                     # Parse I/O line
@@ -144,6 +145,6 @@ class DrakeParser(object):
                     commands.append(line)
                 
         # Add last script to AST
-        add_AST_script(outputs,inputs, options, commands)
+        ast = add_AST_script(ast, outputs,inputs, options, commands)
         
-        return None
+        return ast
