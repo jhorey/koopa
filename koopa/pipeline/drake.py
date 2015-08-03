@@ -29,8 +29,67 @@ class Drake(object):
 
         Returns the full paths of the Luigi scripts.
         """
-        with open(workdir) as f:
-            ast = self.parser.generate_ast(f.read())
-            f.close()
+        
+        # Write luigi file
+        luigi_path = workdir.replace('/Drakefile', '/')
+        luigi_filename = luigi_path +'luigi_script.py'
+        with open(luigi_filename, 'w') as luigi_file:
+            # Write header content
+            luigi_file.write('import luigi\n')
+            luigi_file.write('from subprocess import call\n\n')
+            
+            # Write luigi tasks based on AST
+            with open(workdir) as f:
+                ast = self.parser.generate_ast(f.read())
+                for i, io_lists in enumerate(ast.pipeline):
+                    drake_script = ast.pipeline[io_lists]
+                    
+                    # Debug code
+                    # print 'Input files: '+ str(io_lists.input_files)
+                    # print 'Output files: '+ str(io_lists.output_files)
+                    # print 'Script type: '+ str(drake_script.script_type)
+                    # print 'Script options: '+ str(drake_script.options)
+                    # print 'Script content: '+ str(drake_script.content)
+                    
+                    # Write input task
+                    tab = ' '*4
+                    luigi_file.write('class InputTask{}(luigi.Task):\n'.format(str(i)))
+                    luigi_file.write(tab +'def output(self): return [')
+                    for j, input in enumerate(io_lists.input_files):
+                        if j > 0:
+                            luigi_file.write(', ')
+                        luigi_file.write('luigi.LocalTarget("{}")'.format(input))
+                    luigi_file.write(']\n\n')
+                    
+                    # Write output task
+                    # Write requires() function
+                    luigi_file.write('class OutputTask{}(luigi.Task):\n'.format(str(i)))
+                    luigi_file.write('{}def requires(self): return [InputTask{}()'.format(tab, str(i)))
+                    if i > 0:
+                        luigi_file.write(', OutputTask{}()'.format(str(i-1)))
+                    luigi_file.write(']\n')
+                    
+                    # Write run() function
+                    luigi_file.write('{}def run(self): '.format(tab))
+                    if drake_script.script_type == 'shell':
+                        luigi_file.write('call("{}", shell=True)\n'.format(drake_script.content))
+                    elif drake_script.script_type == 'python':
+                        # This is naive. Will check for indentation errors.
+                        luigi_file.write('\n'+ tab*2 + drake_script.content +'\n')
+                        
+                    # Write output() function
+                    luigi_file.write('{}def output(self): return ['.format(tab))
+                    for j, output in enumerate(io_lists.output_files):
+                        if j > 0:
+                            luigi_file.write(', ')
+                        luigi_file.write('luigi.LocalTarget("{}")'.format(output))
+                    luigi_file.write(']\n\n')
+                    
+                f.close()
+                
+            # Write footer content
+            luigi_file.write('if __name__ == "__main__":\n')
+            luigi_file.write('{}luigi.run()'.format(tab))
+            luigi_file.close()
 
-        return None
+        return luigi_path
