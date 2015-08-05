@@ -70,6 +70,7 @@ class DrakeParser(object):
                         elif char == ' ':
                             replstr = vars[0] +' '
                         content = content.replace('$'+keyword+char, str(replstr))
+                    content = content.replace('$'+keyword, vars[0])
                 return content
             
             # Parse script type
