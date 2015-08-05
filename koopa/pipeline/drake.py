@@ -16,6 +16,7 @@
 from koopa.compiler.drakeparser import DrakeParser
 import logging
 import logging.config
+from subprocess import call
 
 class Drake(object):
     parser = DrakeParser()
@@ -72,7 +73,7 @@ class Drake(object):
                     # Write run() function
                     luigi_file.write('{}def run(self): '.format(tab))
                     if drake_script.script_type == 'shell':
-                        luigi_file.write('call("{}", shell=True)\n'.format(drake_script.content))
+                        luigi_file.write("call('{}', shell=True)\n".format(drake_script.content))
                     elif drake_script.script_type == 'python':
                         # This is naive. Will check for indentation errors.
                         luigi_file.write('\n'+ tab*2 + drake_script.content +'\n')
@@ -85,11 +86,20 @@ class Drake(object):
                         luigi_file.write('luigi.LocalTarget("{}")'.format(output))
                     luigi_file.write(']\n\n')
                     
+                    last_output_task = i
                 f.close()
                 
             # Write footer content
             luigi_file.write('if __name__ == "__main__":\n')
             luigi_file.write('{}luigi.run()'.format(tab))
             luigi_file.close()
-
+            
+            # Write luigi execution script
+            run_script = luigi_path + 'run_luigi.py'
+            with open(run_script, 'w') as f:
+                f.write('luigid > /dev/null 2>&1 &\n')
+                f.write('python "{}" OutputTask{}'.format(luigi_filename, last_output_task))
+                call('chmod u+x "{}"'.format(run_script), shell=True)
+                f.close()
+        
         return luigi_path
