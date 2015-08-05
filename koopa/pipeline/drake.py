@@ -97,7 +97,7 @@ class Drake(object):
             # Write luigi execution script
             run_script = luigi_path + 'run_luigi.py'
             with open(run_script, 'w') as f:
-                f.write('luigid > /dev/null 2>&1 &\n')
+                #f.write('luigid > /dev/null 2>&1 &\n')
                 f.write('python "{}" OutputTask{}'.format(luigi_filename, last_output_task))
                 call('chmod u+x "{}"'.format(run_script), shell=True)
                 f.close()
