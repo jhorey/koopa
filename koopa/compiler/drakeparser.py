@@ -88,7 +88,7 @@ class DrakeParser(object):
             # Format commands based on script type
             if script_type == 'shell':
                 content = ';'.join(commands)
-                content = content.replace("'", "\'")
+                content = content.replace("'", "\\'")
             elif script_type == 'python':
                 content = '\n'.join(commands)
                 
