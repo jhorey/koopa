@@ -17,6 +17,7 @@ from koopa.compiler.drakeparser import DrakeParser
 import logging
 import logging.config
 from subprocess import call
+from collections import OrderedDict
 
 class Drake(object):
     parser = DrakeParser()
@@ -41,14 +42,31 @@ class Drake(object):
             
             Returns dependency graph as a dictionary.
             """
+            
+            def print_graph_bfs(graph):
+                """
+                Prints the ordered dictionary in BFS order.
+            
+                Keyword arguments:
+                graph -- the dependency graph represented in an ordered dictionary
+            
+                Returns nothing.
+                """
+            
+                while graph != OrderedDict():
+                    key, value = graph.popitem(last=False)
+                    print key
+                    if isinstance(value, dict):
+                        for key2 in value:
+                            graph[key2] = value[key2]
 
             # Create disjoint graphs
-            graph = dict()
+            graph = OrderedDict()
             for i, io_lists in enumerate(ast.pipeline):
                 for output in io_lists.output_files:
-                    graph[output] = dict()
+                    graph[output] = OrderedDict()
                     for input in io_lists.input_files:
-                        graph[output][input] = dict()
+                        graph[output][input] = OrderedDict()
             
             # Merge disjoint graphs
             keys_set = set()
@@ -60,6 +78,7 @@ class Drake(object):
                             keys_set.add(input)
             for key in keys_set:
                 del graph[key]
+            print_graph_bfs(graph)
             
             return graph
         
@@ -67,9 +86,11 @@ class Drake(object):
         luigi_path = workdir.replace('/Drakefile', '/')
         luigi_filename = luigi_path +'luigi_script.py'
         with open(luigi_filename, 'w') as luigi_file:
+            '''
             # Write header content
             luigi_file.write('import luigi\n')
             luigi_file.write('from subprocess import call\n\n')
+            '''
             
             # Write luigi tasks based on AST
             with open(workdir) as f:
