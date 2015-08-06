@@ -18,6 +18,7 @@ import logging
 import logging.config
 from subprocess import call
 from collections import OrderedDict
+from copy import deepcopy
 
 class Drake(object):
     parser = DrakeParser()
@@ -78,7 +79,7 @@ class Drake(object):
                             keys_set.add(input)
             for key in keys_set:
                 del graph[key]
-            print_graph_bfs(graph)
+            print_graph_bfs(deepcopy(graph))
             
             return graph
         
