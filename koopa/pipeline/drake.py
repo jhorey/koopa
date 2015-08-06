@@ -31,6 +31,38 @@ class Drake(object):
         Returns the full paths of the Luigi scripts.
         """
         
+        def create_dependency_graph(ast):
+            """
+            Creates dependency graph from abstract-syntax tree.
+            
+            Keyword arguments:
+            ast -- abstract-syntax tree as an ordered dictionary. 
+                Keys are InputOutputLists and values are DrakeScripts.
+            
+            Returns dependency graph as a dictionary.
+            """
+
+            # Create disjoint graphs
+            graph = dict()
+            for i, io_lists in enumerate(ast.pipeline):
+                for output in io_lists.output_files:
+                    graph[output] = dict()
+                    for input in io_lists.input_files:
+                        graph[output][input] = dict()
+            
+            # Merge disjoint graphs
+            keys_set = set()
+            for output in graph:
+                for input in graph[output]:
+                    if input in graph.keys():
+                        for key in graph[input]:
+                            graph[output][input][key] = graph[input][key]
+                            keys_set.add(input)
+            for key in keys_set:
+                del graph[key]
+            
+            return graph
+        
         # Write luigi file
         luigi_path = workdir.replace('/Drakefile', '/')
         luigi_filename = luigi_path +'luigi_script.py'
@@ -42,6 +74,9 @@ class Drake(object):
             # Write luigi tasks based on AST
             with open(workdir) as f:
                 ast = self.parser.generate_ast(f.read())
+                graph = create_dependency_graph(ast)
+                
+                '''
                 for i, io_lists in enumerate(ast.pipeline):
                     drake_script = ast.pipeline[io_lists]
                     
@@ -71,12 +106,16 @@ class Drake(object):
                     luigi_file.write(']\n')
                     
                     # Write run() function
+                    temp_file = luigi_path + "temp"
                     luigi_file.write('{}def run(self): '.format(tab))
                     if drake_script.script_type == 'shell':
                         luigi_file.write("call('{}', shell=True)\n".format(drake_script.content))
                     elif drake_script.script_type == 'python':
-                        # This is naive. Will check for indentation errors.
-                        luigi_file.write('\n'+ tab*2 + drake_script.content +'\n')
+                        luigi_file.write('\n')
+                        luigi_file.write("{}call(\"echo '{}' > '{}.py'\", shell=True)\n".format(tab*2, drake_script.content.strip(), temp_file))
+                        luigi_file.write("{}call(\"python '{}.py'; rm '{}.py'\", shell=True)\n".format(tab*2, temp_file, temp_file))
+                    else:
+                        luigi_file.write('\n')
                         
                     # Write output() function
                     luigi_file.write('{}def output(self): return ['.format(tab))
@@ -87,20 +126,24 @@ class Drake(object):
                     luigi_file.write(']\n\n')
                     
                     last_output_task = i
+                '''
+                    
                 f.close()
                 
+            '''
             # Write footer content
             luigi_file.write('if __name__ == "__main__":\n')
             luigi_file.write('{}luigi.run()'.format(tab))
             luigi_file.close()
             
             # Write luigi execution script
-            run_script = luigi_path + 'run_luigi.py'
+            run_script = luigi_path + 'run_luigi.sh'
             with open(run_script, 'w') as f:
                 f.write('luigid > /dev/null 2>&1 &\n')
                 f.write('sleep 1\n')
                 f.write('python "{}" OutputTask{}'.format(luigi_filename, last_output_task))
                 f.close()
             call('chmod u+x "{}"'.format(run_script), shell=True)
+            '''
         
         return luigi_path
