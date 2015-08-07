@@ -53,13 +53,14 @@ class Drake(object):
             
                 Returns nothing.
                 """
-            
-                while graph != OrderedDict():
-                    key, value = graph.popitem(last=False)
+                
+                graph2 = deepcopy(graph)
+                while graph2 != OrderedDict():
+                    key, value = graph2.popitem(last=False)
                     print key
                     if isinstance(value, dict):
                         for key2 in value:
-                            graph[key2] = value[key2]
+                            graph2[key2] = value[key2]
 
             # Create disjoint graphs
             graph = OrderedDict()
@@ -79,7 +80,7 @@ class Drake(object):
                             keys_set.add(input)
             for key in keys_set:
                 del graph[key]
-            print_graph_bfs(deepcopy(graph))
+            print_graph_bfs(graph)
             
             return graph
         
