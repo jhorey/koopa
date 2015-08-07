@@ -20,6 +20,139 @@ from subprocess import call
 from collections import OrderedDict
 from copy import deepcopy
 
+class DependencyGraph:
+    """
+    Dependency graph class.
+    
+    Class members:
+    graph -- an ordered dictionary that holds the dependency graph
+    """
+    
+    graph = OrderedDict()
+    
+    def __init__(self, ast):
+        """
+        DependencyGraph constructor.
+        
+        Keyword arguments:
+        ast -- abstract-syntax tree in an ordered dictionary.
+        """
+        self.create_dependency_graph(ast)
+        return None
+    
+    def create_dependency_graph(self, ast):
+        """
+        Creates dependency graph from abstract-syntax tree.
+        
+        Keyword arguments:
+        ast -- abstract-syntax tree in an ordered dictionary. 
+            Keys are InputOutputLists and values are DrakeScripts.
+        
+        Returns nothing.
+        """
+
+        # Create disjoint graphs
+        for io_lists in ast.pipeline:
+            for output in io_lists.output_files:
+                self.graph[output] = OrderedDict()
+                for input in io_lists.input_files:
+                    self.graph[output][input] = OrderedDict()
+        
+        # Merge disjoint graphs
+        keys_set = set()
+        for output in self.graph:
+            for input in self.graph[output]:
+                if input in self.graph:
+                    for key in self.graph[input]:
+                        self.graph[output][input][key] = self.graph[input][key]
+                        keys_set.add(input)
+                        
+        # Remove redundant dependencies
+        for key in keys_set:
+            del self.graph[key]
+        return None
+            
+    def get_dependency_graph(self):
+        """
+        Returns the dependency graph.
+        """
+        return self.graph
+        
+    def get_dependencies(self, target, graph, dep_list):
+        """
+        Recursive function to find dependencies in graph that contains target.
+        
+        Keyword arguments:
+        target -- the key in the dependency of type string
+        dep_list -- list of dependencies passed by reference
+        
+        Returns a list of ordered dictionaries.
+        """
+        
+        if graph == OrderedDict(): return
+        if target in graph:
+            dep_list.append(graph)
+            return dep_list
+        for key in graph:
+            self.get_dependencies(target, graph[key], dep_list)
+        return dep_list
+    
+    def add_dependency(self, dep):
+        """
+        Adds one dependency to the dependency graph.
+        WARNING: overwrites current existing dependencies.
+        
+        Keyword arguments:
+        dep -- dependency in an ordered dict.
+        
+        Returns True if successful or False if dep is empty.
+        """
+        
+        if dep == OrderedDict(): return False
+        dep_key, dep_dict = dep.popitem()
+        graph_list = self.get_dependencies(dep_key, self.graph, list())
+        if graph_list != None:
+            if graph_list != list():
+                for graph in graph_list:
+                    graph[dep_key] = dep_dict
+            else:
+                self.graph[dep_key] = dep_dict
+            return True
+        return False
+            
+    def print_graph_bfs(self):
+        """
+        Prints the ordered dictionary in BFS order.
+
+        Keyword arguments:
+        graph -- the dependency graph represented in an ordered dictionary
+
+        Returns nothing.
+        """
+    
+        graph2 = deepcopy(self.graph)
+        while graph2 != OrderedDict():
+            key, value = graph2.popitem(last=False)
+            print key
+            for key2 in value:
+                graph2[key2] = value[key2]
+        return None
+                    
+    def print_graph_dfs(self):
+        """
+        Prints the ordered dictionary in DFS order.
+
+        Returns nothing.
+        """
+    
+        graph2 = deepcopy(self.graph)
+        while graph2 != OrderedDict():
+            key, value = graph2.popitem(last=True)
+            print key
+            for key2 in value:
+                graph2[key2] = value[key2]
+        return None
+
 class Drake(object):
     parser = DrakeParser()
 
@@ -32,57 +165,6 @@ class Drake(object):
 
         Returns the full paths of the Luigi scripts.
         """
-        
-        def create_dependency_graph(ast):
-            """
-            Creates dependency graph from abstract-syntax tree.
-            
-            Keyword arguments:
-            ast -- abstract-syntax tree as an ordered dictionary. 
-                Keys are InputOutputLists and values are DrakeScripts.
-            
-            Returns dependency graph as a dictionary.
-            """
-            
-            def print_graph_bfs(graph):
-                """
-                Prints the ordered dictionary in BFS order.
-            
-                Keyword arguments:
-                graph -- the dependency graph represented in an ordered dictionary
-            
-                Returns nothing.
-                """
-                
-                graph2 = deepcopy(graph)
-                while graph2 != OrderedDict():
-                    key, value = graph2.popitem(last=False)
-                    print key
-                    if isinstance(value, dict):
-                        for key2 in value:
-                            graph2[key2] = value[key2]
-
-            # Create disjoint graphs
-            graph = OrderedDict()
-            for i, io_lists in enumerate(ast.pipeline):
-                for output in io_lists.output_files:
-                    graph[output] = OrderedDict()
-                    for input in io_lists.input_files:
-                        graph[output][input] = OrderedDict()
-            
-            # Merge disjoint graphs
-            keys_set = set()
-            for output in graph:
-                for input in graph[output]:
-                    if input in graph.keys():
-                        for key in graph[input]:
-                            graph[output][input][key] = graph[input][key]
-                            keys_set.add(input)
-            for key in keys_set:
-                del graph[key]
-            print_graph_bfs(graph)
-            
-            return graph
         
         # Write luigi file
         luigi_path = workdir.replace('/Drakefile', '/')
@@ -97,7 +179,7 @@ class Drake(object):
             # Write luigi tasks based on AST
             with open(workdir) as f:
                 ast = self.parser.generate_ast(f.read())
-                graph = create_dependency_graph(ast)
+                dep_graph = DependencyGraph(ast)
                 
                 '''
                 for i, io_lists in enumerate(ast.pipeline):
