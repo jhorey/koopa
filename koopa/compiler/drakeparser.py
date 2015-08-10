@@ -70,6 +70,7 @@ class DrakeParser(object):
                         elif char == ' ':
                             replstr = vars[0] +' '
                         content = content.replace('$'+keyword+char, str(replstr))
+                    content = content.replace('$'+keyword, vars[0])
                 return content
             
             # Parse script type
@@ -87,9 +88,13 @@ class DrakeParser(object):
             # Format commands based on script type
             if script_type == 'shell':
                 content = ';'.join(commands)
-                content = content.replace("'", "\'")
+                content = content.replace("'", "\\'")
             elif script_type == 'python':
-                content = '\n'.join(commands)
+                content = ';'.join(commands)
+                content = content.replace("'", "\\'")
+            else:
+                content = ';'.join(commands)
+                content = content.replace("'", "\\'")
                 
             # Replace input/output keywords in commands with variable values
             content = replace_io_keywords(content, inputs, outputs)
@@ -102,6 +107,7 @@ class DrakeParser(object):
                     inputs.remove(input)
             
             # Debug code
+            # print 'Script type: {}'.format(script_type)
             # print 'Outputs: {}'.format(', '.join(outputs))
             # print 'Inputs: {}'.format(', '.join(inputs))
             # print 'Options: {}'.format(', '.join(options))
