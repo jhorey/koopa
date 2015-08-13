@@ -48,7 +48,6 @@ class LuigiGenerator(object):
                 ast = self.parser.generate_ast(f.read())
                 dep_graph = DependencyGraph(ast)
                 outputs = dep_graph.get_outputs()
-                print outputs
                 
                 for i, output in enumerate(outputs):
                     isLeafNode = True
@@ -60,18 +59,18 @@ class LuigiGenerator(object):
                             drake_script = ast.pipeline[io_lists]
                 
                             # Debug code
-                            print 'Output files: '+ str(io_lists.output_files)
-                            print 'Task' + str(i)
-                            print 'Input files: '+ str(io_lists.input_files)
-                            for input in io_lists.input_files:
-                                if input in outputs:
-                                    print 'requires Task' +str(outputs.index(input))
-                                else:
-                                    print 'requires new Task'
-                            print 'Script type: '+ str(drake_script.script_type)
-                            print 'Script options: '+ str(drake_script.options)
-                            print 'Script content: '+ str(drake_script.content)
-                            print
+                            # print 'Output files: '+ str(io_lists.output_files)
+                            # print 'Task' + str(i)
+                            # print 'Input files: '+ str(io_lists.input_files)
+                            # for input in io_lists.input_files:
+                            #     if input in outputs:
+                            #         print 'requires Task' +str(outputs.index(input))
+                            #     else:
+                            #         print 'requires new Task'
+                            # print 'Script type: '+ str(drake_script.script_type)
+                            # print 'Script options: '+ str(drake_script.options)
+                            # print 'Script content: '+ str(drake_script.content)
+                            # print
                 
                             # Write requires() function
                             luigi_file.write('class Task{}(luigi.Task):\n'.format(str(i)))
@@ -108,9 +107,9 @@ class LuigiGenerator(object):
                     if isLeafNode:
                     
                         # Debug code
-                        print 'Output files: '+ output
-                        print 'Task' + str(i)
-                        print
+                        # print 'Output files: '+ output
+                        # print 'Task' + str(i)
+                        # print
                         
                         luigi_file.write('class Task{}(luigi.Task):\n'.format(str(i)))
                         luigi_file.write('{}def output(self): return luigi.LocalTarget("{}")\n\n'.format(tab, output))
