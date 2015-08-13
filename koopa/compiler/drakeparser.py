@@ -42,7 +42,7 @@ class DrakeParser(object):
             Returns ast.
             """
             
-            def replace_io_keywords(content, inputs, outputs):
+            def replace_io_keywords(content, inputs, outputs, script_type='shell'):
                 """
                 Replaces I/O keywords in content with variable values.
                 
@@ -50,6 +50,7 @@ class DrakeParser(object):
                 content: string of commands for given protocol
                 inputs: list of input variables of type string
                 outputs: list of output variables of type string
+                script_type: script type contained in a string
                 
                 Returns string of new content.
                 """
@@ -57,20 +58,60 @@ class DrakeParser(object):
                 keywords = ['INPUT', 'OUTPUT']
                 var_groups = [inputs, outputs]
                 for keyword, vars in zip(keywords, var_groups):
-                    matches = set(re.findall('\$'+keyword+'.', content))
-                    for match in matches:
-                        char = match[len(match)-1:]
-                        replstr = ''
-                        if char == 'N':
-                            replstr = len(vars)
-                        elif char == 'S':
-                            replstr = ' '.join(vars)
-                        elif char.isdigit():
-                            replstr = vars[int(char)]
-                        elif char == ' ':
-                            replstr = vars[0] +' '
-                        content = content.replace('$'+keyword+char, str(replstr))
-                    content = content.replace('$'+keyword, vars[0])
+                    
+                    # First substitutions
+                    if script_type == 'shell':
+                        matches = set(re.findall('\$'+keyword+'.', content))
+                        for match in matches:
+                            char = match[len(match)-1:]
+                            replstr = ''
+                            if char == 'N':
+                                replstr = len(vars)
+                            elif char == 'S':
+                                replstr = ' '.join(vars)
+                            elif char.isdigit():
+                                replstr = vars[int(char)]
+                            elif char == ' ':
+                                replstr = vars[0] +' '
+                            content = content.replace('$'+keyword+char, str(replstr))
+                        content = content.replace('$'+keyword, vars[0])
+                    elif script_type == 'python' or script_type == 'R':
+                        matches = set(re.findall('\$\['+keyword+'.\]', content))
+                        for match in matches:
+                            char = match[len(match)-2:len(match)-1]
+                            replstr = ''
+                            if char == 'N':
+                                replstr = len(vars)
+                            elif char == 'S':
+                                replstr = ' '.join(vars)
+                            elif char.isdigit():
+                                replstr = vars[int(char)]
+                            elif char == ' ':
+                                replstr = vars[0] +' '
+                            content = content.replace('$['+keyword+char+']', str(replstr))
+                        content = content.replace('$['+keyword+']', vars[0])
+                        
+                    # Second substitutions
+                    keyword = keyword.lower()
+                    if script_type == 'python':
+                        matches = set(re.findall(keyword+'s\[\d\]', content))
+                        for match in matches:
+                            char = match[len(match)-2:len(match)-1]
+                            content = content.replace(keyword+'s['+char+']', vars[int(char)])
+                        content = content.replace(keyword+'s.length', str(len(vars)))
+                        for end in [' ', '\n']:
+                            content = content.replace(keyword+'s'+end, ' '.join(vars)+end)
+                            content = content.replace(keyword+end, vars[0]+end)
+                    elif script_type == 'R':
+                        matches = set(re.findall(keyword+'s\[\d\]', content))
+                        for match in matches:
+                            char = match[len(match)-2:len(match)-1]
+                            content = content.replace(keyword+'s['+char+']', vars[int(char)])
+                        content = content.replace('length('+keyword+'s)', str(len(vars)))
+                        for end in [' ', '\n']:
+                            content = content.replace(keyword+'s'+end, ' '.join(vars)+end)
+                            content = content.replace(keyword+end, vars[0]+end)
+                    
                 return content
             
             # Parse script type
@@ -89,15 +130,15 @@ class DrakeParser(object):
             if script_type == 'shell':
                 content = ';'.join(commands)
                 content = content.replace("'", "\\'")
-            elif script_type == 'python':
-                content = ';'.join(commands)
+            elif script_type == 'python' or script_type == 'R':
+                content = '\n'.join(commands)
                 content = content.replace("'", "\\'")
             else:
-                content = ';'.join(commands)
+                content = '\n'.join(commands)
                 content = content.replace("'", "\\'")
                 
             # Replace input/output keywords in commands with variable values
-            content = replace_io_keywords(content, inputs, outputs)
+            content = replace_io_keywords(content, inputs, outputs, script_type)
             
             # Ignore tags in inputs and outputs
             for output, input in zip(outputs, inputs):
