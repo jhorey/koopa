@@ -85,13 +85,13 @@ class LuigiGenerator(object):
                             temp_file = luigi_path + "temp"
                             luigi_file.write('{}def run(self): '.format(tab))
                             if drake_script.script_type == 'shell':
-                                luigi_file.write("call('{}', shell=True)\n".format(drake_script.content))
+                                luigi_file.write("call('{}', shell=True)\n".format(drake_script.content.strip()))
                             elif drake_script.script_type == 'python' or drake_script.script_type == 'R':
                                 if drake_script.script_type == 'python': temp_file += '.py'                                
                                 elif drake_script.script_type == 'R': temp_file += '.R'
                                 luigi_file.write('\n')
-                                luigi_file.write("{}call(\"echo '{}' > {}'\", shell=True)\n".format(tab*2, drake_script.content.strip(), temp_file))
-                                luigi_file.write("{}call(\"python '{}'; rm '{}'\", shell=True)\n".format(tab*2, temp_file, temp_file))
+                                luigi_file.write("{}call(\"echo '{}' > '{}'\", shell=True)\n".format(tab*2, drake_script.content, temp_file))
+                                luigi_file.write("{}call(\"{} '{}'; rm '{}'\", shell=True)\n".format(tab*2, drake_script.script_type, temp_file, temp_file))
                             else:
                                 luigi_file.write('\n')
                     
