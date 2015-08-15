@@ -127,17 +127,19 @@ class DrakeParser(object):
                     print 'Parse script_file_type'
                     
             # Format commands based on script type
-            if script_type == 'shell':
-                content = '\\n'.join(commands)
-                content = content.replace("'", "\\'")
-                content = content.replace('"', '\\"')
-            elif script_type == 'python' or script_type == 'R':
-                content = '\\n'.join(commands)
-                content = content.replace("'", "\\'")
-                content = content.replace('"', '\\"')
-            else:
-                content = '\n'.join(commands)
-                content = content.replace("'", "\\'")
+            # Remove extra indentation from python scripts
+            if script_type == 'python':
+                match = re.search('^\s*', commands[0])
+                if match:
+                    indent_size = len(match.group())
+                    for i, command in enumerate(commands):
+                        commands[i] = command[indent_size:]
+            # Concatenate commands and escape quotes, newlines
+            #for i, command in enumerate(commands):
+            #    commands[i] = command.replace('\n', '\\\n')
+            content = '\\n'.join(commands)
+            content = content.replace("'", "\\'")
+            content = content.replace('"', '\\"')
                 
             # Replace input/output keywords in commands with variable values
             content = replace_io_keywords(content, inputs, outputs, script_type)
