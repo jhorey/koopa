@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 import koopa
-from koopa.pipeline.drake import Drake
+from koopa.generator.luigigenerator import LuigiGenerator
 from koopa.pipeline.luigi import Luigi
 from koopa.client.options import CmdHelp
 import logging
@@ -24,7 +24,7 @@ import sys
 #
 # Global vars. 
 # 
-drake = Drake()
+luigi_gen = LuigiGenerator()
 luigi = Luigi()
 
 def compile_and_execute(workdir=None):
@@ -35,7 +35,7 @@ def compile_and_execute(workdir=None):
     if not workdir:
         workdir = os.getcwd() + "/Drakefile"
 
-    luigi_pipeline = drake.compile(workdir)
+    luigi_pipeline = luigi_gen.compile(workdir)
     luigi.execute(pipeline=luigi_pipeline,
                   server="local")
 

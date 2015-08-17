@@ -120,34 +120,19 @@ class DependencyGraph:
             return True
         return False
             
-    def print_graph_bfs(self):
+    def print_graph(self, isDFS):
         """
-        Prints the ordered dictionary in BFS order.
+        Prints the dependency graph in BFS or DFS order.
 
         Keyword arguments:
-        graph -- the dependency graph represented in an ordered dictionary
+        isDFS -- True if printing in DFS order. False if printing in BFS order.
 
         Returns nothing.
         """
     
         graph2 = deepcopy(self.graph)
         while graph2 != OrderedDict():
-            key, value = graph2.popitem(last=False)
-            print key
-            for key2 in value:
-                graph2[key2] = value[key2]
-        return None
-                    
-    def print_graph_dfs(self):
-        """
-        Prints the ordered dictionary in DFS order.
-
-        Returns nothing.
-        """
-    
-        graph2 = deepcopy(self.graph)
-        while graph2 != OrderedDict():
-            key, value = graph2.popitem(last=True)
+            key, value = graph2.popitem(last=isDFS)
             print key
             for key2 in value:
                 graph2[key2] = value[key2]
