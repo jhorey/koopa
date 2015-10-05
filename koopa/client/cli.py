@@ -1,4 +1,4 @@
-# Copyright 2015 Cirruspath, Inc. 
+# Copyright 2015 Cirruspath, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+import json
 import koopa
+from koopa.generator.docker import DockerGenerator
 from koopa.generator.luigigenerator import LuigiGenerator
 from koopa.pipeline.luigi import Luigi
 from koopa.client.options import CmdHelp
@@ -22,22 +25,35 @@ import os
 import sys
 
 #
-# Global vars. 
-# 
-luigi_gen = LuigiGenerator()
-luigi = Luigi()
+# Global vars.
+#
 
-def compile_and_execute(workdir=None):
+def compile_and_execute(drakefile=None):
     """
-    Call the Drake compiler and execute the Luigi pipeline. 
+    Call the Drake compiler and execute the Luigi pipeline.
     """
-    
-    if not workdir:
-        workdir = os.getcwd() + "/Drakefile"
 
-    luigi_pipeline = luigi_gen.compile(workdir)
-    luigi.execute(pipeline=luigi_pipeline,
-                  server="local")
+    # Read in the configuration.
+    config_file = os.getenv("KOOPA_CONFIG", "config") + "/koopa.json"
+    if not os.path.isfile(config_file):
+        print "could not find Koopa config"
+        sys.exit(1)
+    config = json.load(open(config_file))
+
+    # Look in the local directory for the Drakefile if the user hasn't explicitly passed one.
+    if not drakefile:
+        drakefile = os.getcwd() + "/Drakefile"
+
+    # Check which backend we are targetting.
+    if config["BACKEND"] == "DOCKER":
+        docker = DockerGenerator()
+        pipeline = docker.compile(drakefile)
+    else:
+        luigi_gen = LuigiGenerator()
+        luigi = Luigi()
+        pipeline = luigi_gen.compile(drakefile)
+        luigi.execute(pipeline=pipeline,
+                      server="local")
 
 class CLI(object):
     def __init__(self):
@@ -56,7 +72,6 @@ def main(argv=None):
         # Initialize the cli
         options = cli.cmds.get_options()
         if '-w' in options:
-            compile_and_execute(workdir=options['-w'])
+            compile_and_execute(drakefile=options['-w'][0])
         else:
-            compile_and_execute(workdir=None)
-
+            compile_and_execute()

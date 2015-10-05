@@ -1,4 +1,4 @@
-# Copyright 2015 Cirruspath, Inc. 
+# Copyright 2015 Cirruspath, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,31 +27,17 @@ class PipelineAST(object):
 
     def add_pipeline_step(self, io_lists, drake_script):
         """
-        Add a new pipeline step. 
+        Add a new pipeline step.
         """
         self.pipeline[io_lists] = drake_script
 
 class InputOutputLists:
     """
-    Simple lists with names of the output and input files but tags. 
+    Simple lists with names of the output and input files but tags.
     """
     input_files = list()
     output_files = list()
-    
+
     def __init__(self, input_files, output_files):
         self.input_files = input_files
         self.output_files = output_files
-    
-class DrakeScript:
-    """
-    Simple list of Drakefile options and Drake script content.
-    """
-    script_type = 'shell'
-    options = list()
-    content = ''
-    
-    def __init__(self, script_type, options, content):
-        self.script_type = script_type
-        self.options = options
-        self.content = content
-        

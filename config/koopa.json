@@ -1,0 +1,5 @@
+{
+    "BACKEND":                     "DOCKER",
+    "DOCKER_REGISTRY_HOST":        "localhost",
+    "DOCKER_REGISTRY_PORT":        "5000"
+}
