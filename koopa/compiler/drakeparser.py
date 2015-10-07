@@ -61,14 +61,15 @@ class DrakeParser(object):
         """
         Indicate whether the line is a segment header.
         """
+
         # Just assume that anything that not a body or comment is part of a new segment.
-        return line[0] != '\t' and line[0] != ';'
+        return line[0] != ' ' and line[0] != ';'
 
     def is_segment_body(self, line):
         """
         Indicate whether the line is a segment body line.
         """
-        return line[0] == '\t'
+        return line[0] == ' '
 
     def parse_job_options(self, option_values):
         options = {}
@@ -87,7 +88,9 @@ class DrakeParser(object):
 
         # First capture the inputs.
         io_split = line.split("<-")
+
         inputs = io_split[0].split(",")
+        inputs = [i.strip() for i in inputs]
 
         # Before we can capture the outputs, we can need to capture the options.
         # Options have [] brackets around them and only appear after the outputs.
@@ -99,6 +102,7 @@ class DrakeParser(object):
             options = {}
             outputs = io_split[1].split(",")
 
+        outputs = [i.strip() for i in outputs]
         return inputs, outputs, options
 
     def generate_ast(self, drake_content):
@@ -109,12 +113,20 @@ class DrakeParser(object):
         current_stage = None
         lines = drake_content.split('\n')
         for line in lines:
+            # Skip blank lines.
+            if line.strip() == "":
+                continue
+
             if self.is_segment_header(line):
+                # print "parsing segment header"
+                # print line
+
                 # We are parsing a new pipeline stage. Check if we need to add a prior
                 # stage, and then proceed to parsing the actual stage information.
 
                 if current_stage:
-                    ast.add_pipeline_step(current_stage['io'], current_stage['script'])
+                    # print "adding pipeline stage"
+                    ast.add_pipeline_step(current_stage['io'], current_stage['body']['script'])
 
                 input_files, output_files, job_options = self.parse_segment_header(line)
                 current_stage = { 'io': InputOutputLists(input_files, output_files),
@@ -125,11 +137,18 @@ class DrakeParser(object):
                                 }
 
             elif self.is_segment_body(line):
+                # print "parsing body segment"
+                # print line
+
                 # We are parsing the body.
                 if current_stage:
                     current_stage['body']['script'].append(line)
                 else:
                     # This is an error. We cannot parse a body that is separate from a stage!
                     print "Error!"
+
+        if current_stage:
+            print "adding pipeline stage"
+            ast.add_pipeline_step(current_stage['io'], current_stage['body']['script'])
 
         return ast

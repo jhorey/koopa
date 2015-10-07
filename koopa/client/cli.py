@@ -73,5 +73,7 @@ def main(argv=None):
         options = cli.cmds.get_options()
         if '-w' in options:
             compile_and_execute(drakefile=options['-w'][0])
+        elif '-h' in options:
+            print cli.cmds.print_help()
         else:
             compile_and_execute()

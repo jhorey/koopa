@@ -36,10 +36,8 @@ class DockerGenerator(object):
                 print k.input_files
                 print k.output_files
 
-                print ast.pipeline[k].script_type
-                print ast.pipeline[k].options
-                print ast.pipeline[k].content
+                print str(ast.pipeline[k])
 
                 # Choose which Dockerfile template to use given the script type.
                 # These templates specify how to install packages and how to wrap the
-                # commands into the appropriate files. 
+                # commands into the appropriate files.
