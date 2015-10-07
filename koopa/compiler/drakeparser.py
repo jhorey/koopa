@@ -19,37 +19,40 @@ import re
 class DrakeParser(object):
 
     def get_io_substitution(self, keyword, io_list, content):
-        replacements = {}
-        matches = set(re.findall(keyword, content))
-        for match in matches:
-            char = match[-1]
-            if char == 'N':
-                input_str = len(io_list)
-            elif char == 'S':
-                input_str = ' '.join(io_list)
-            elif char.isdigit():
-                input_str = inputs[int(io_list)]
-            elif char == ' ':
-                input_str = io_list[0]
+        new_content = []
+        for c in content:
+            replacements = {}
+            matches = re.findall(keyword, c)
+            for match in matches:                
+                char = match[-1]
+                if char == 'N':
+                    input_str = len(io_list)
+                elif char == 'S':
+                    input_str = ' '.join(io_list)
+                elif char.isdigit():
+                    input_str = inputs[int(io_list)]
+                else:
+                    input_str = io_list[0]
 
-            replacements[match] = input_str
+                replacements[match] = input_str
 
-        for r in replacements.keys():
-            content = content.replace(r, replacements[r])
+            for r in replacements.keys():
+                c = c.replace(r, replacements[r])
+            new_content.append(c)
 
-        return content
+        return new_content
 
-    def replace_io_keywords(self, content, inputs, outputs, script_type='shell'):
+    def replace_io_keywords(self, content, inputs, outputs, script_type=None):
         """
         Replaces I/O keywords (INPUT, OUTPUT) in the script with variable values.
         """
-
-        if script_type == "shell":
+        
+        if script_type == None or script_type == "bash":
             # Shell scripts use the simple $INPUT[n], $OUTPUT[n] style.
-            keywords = ["\$INPUT.", "\$OUTPUT."]
+            keywords = ["(\$INPUT.*)", "(\$OUTPUT.*)"]
         else:
             # Otherwise, we have to use square brackets.
-            keywords = ["\$[INPUT.]", "\$[OUTPUT.]"]
+            keywords = ["(\$\[INPUT.*\])", "(\$\[OUTPUT.*\])"]
 
         # Make the keyword substitutions
         content = self.get_io_substitution(keywords[0], inputs, content)
@@ -104,7 +107,7 @@ class DrakeParser(object):
 
         outputs = [i.strip() for i in outputs]
         return inputs, outputs, options
-
+            
     def generate_ast(self, drake_content):
         """
         Produce an abstract-syntax-tree for the Drakefile content.
@@ -118,15 +121,17 @@ class DrakeParser(object):
                 continue
 
             if self.is_segment_header(line):
-                # print "parsing segment header"
-                # print line
-
                 # We are parsing a new pipeline stage. Check if we need to add a prior
                 # stage, and then proceed to parsing the actual stage information.
 
                 if current_stage:
-                    # print "adding pipeline stage"
-                    ast.add_pipeline_step(current_stage['io'], current_stage['body']['script'])
+                    # Before adding the stage, replace all the I/O keywords.
+                    script_type = current_stage['body']['options'].get('script', None)                    
+                    current_stage['body']['script'] = self.replace_io_keywords(current_stage['body']['script'],
+                                                                               current_stage['io'].input_files,
+                                                                               current_stage['io'].output_files,
+                                                                               script_type)
+                    ast.add_pipeline_step(current_stage['io'], current_stage['body'])
 
                 input_files, output_files, job_options = self.parse_segment_header(line)
                 current_stage = { 'io': InputOutputLists(input_files, output_files),
@@ -148,7 +153,12 @@ class DrakeParser(object):
                     print "Error!"
 
         if current_stage:
-            print "adding pipeline stage"
-            ast.add_pipeline_step(current_stage['io'], current_stage['body']['script'])
+            # Before adding the stage, replace all the I/O keywords.
+            script_type = current_stage['body']['options'].get('script', None)
+            current_stage['body']['script'] = self.replace_io_keywords(current_stage['body']['script'],
+                                                                       current_stage['io'].input_files,
+                                                                       current_stage['io'].output_files,
+                                                                       script_type)            
+            ast.add_pipeline_step(current_stage['io'], current_stage['body'])
 
         return ast
