@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from collections import OrderedDict
 from koopa.compiler.drakeparser import DrakeParser
 from koopa.generator.dependencygraph import DependencyGraph
 from koopa.generator.python import PythonGenerator
@@ -20,8 +21,8 @@ from koopa.generator.rlang import RGenerator
 from koopa.generator.bash import BashGenerator
 import logging
 import logging.config
+import os
 from subprocess import call
-from collections import OrderedDict
 
 class DockerGenerator(object):
     parser = DrakeParser()
@@ -92,7 +93,7 @@ class DockerGenerator(object):
             docker_file = f.read()
 
             add_script_cmd = "ADD ./%s /scripts/" % execute_file
-            default_script_cmd = "CMD [/scripts/%s]" % execute_file            
+            default_script_cmd = "CMD [\"/scripts/%s\"]" % execute_file            
             
             docker_file = docker_file.replace("__INSTALL_PACKAGE_STEP__", "\n".join(install_cmds))
             docker_file = docker_file.replace("__INSTALL_SCRIPT_STEP__", add_script_cmd)
@@ -100,6 +101,6 @@ class DockerGenerator(object):
 
         print "Compiling Dockerfile"
         docker_file_name = "Dockerfile_stage_%s" % stage        
-        with open("config/" + docker_file_name, "w") as f:
+        with open("pipeline/" + docker_file_name, "w") as f:
             f.write(docker_file)
             

@@ -26,7 +26,7 @@ class PythonGenerator(object):
 
         # Write out the commands to a temporary file. 
         execute_file_name = "koopa_execute_file_%s" % stage
-        with open(execute_file_name, "w") as f:
+        with open("pipeline/" + execute_file_name, "w") as f:
             f.write(run_cmds)
             
         return execute_file_name
