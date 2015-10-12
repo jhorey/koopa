@@ -5,14 +5,18 @@ Bash generator.
 class BashGenerator(object):
 
 
-    def gen_install(self, requirements):
+    def gen_install(self, parent_dir, req_file):
         """
         Generate the installation process for the Python script.
         """
-        req_string = " ".join(requirements)
-        return ['apt-get --yes install ' + req_string]
 
-    def gen_script(self, stage, script):
+        # Read in the requirements file.
+        with open(os.path.join(parent_dir, req_file), 'r') as f:
+            requirements = f.read()
+            req_string = " ".join(requirements)
+            return ['RUN apt-get --yes install ' + req_string]
+
+    def gen_script(self, stage, script, parent_dir):
         """
         Generate the actual script that will be executed. 
         """

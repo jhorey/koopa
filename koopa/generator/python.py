@@ -3,18 +3,27 @@ Python generator.
 """
 
 import os
+import shutil
 
 class PythonGenerator(object):
 
 
-    def gen_install(self, requirements):
+    def gen_install(self, parent_dir, req_file):
         """
         Generate the installation process for the Python script.
         """
-        return [ 'pip install -r %s' % requirements]
 
+        # Get the full path of the requirements file. 
+        requirements = os.path.abspath(os.path.join(parent_dir, req_file))
+        
+        # Copy the file to the pipeline dir.
+        shutil.copyfile(requirements, "pipeline/" + req_file)
+        
+        # Add from the pipeline dir.        
+        return [ 'ADD ./%s /scripts/' % req_file,
+                 'RUN pip install -r /scripts/%s' % req_file]
 
-    def gen_script(self, stage, script):
+    def gen_script(self, stage, script, parent_dir):
         """
         Generate the actual script that will be executed. 
         """

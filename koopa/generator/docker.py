@@ -33,6 +33,7 @@ class DockerGenerator(object):
         """
         
         print "Using Drakefile " + drakefile
+        parent_dir = os.path.dirname(drakefile)        
         with open(drakefile) as f:
             # Parse the AST and get the dependency graph.
             stage = 0
@@ -66,10 +67,10 @@ class DockerGenerator(object):
                 # Generate the installation procedure.
                 install_cmds = []
                 if 'requirements' in ast.pipeline[k]['options']:
-                    install_cmds = backend.gen_install(ast.pipeline[k]['options']['requirements'])
+                    install_cmds = backend.gen_install(parent_dir, ast.pipeline[k]['options']['requirements'])
             
                 # Create the script that will actually execute in the container.
-                file_name = backend.gen_script(stage, ast.pipeline[k]['script'])
+                file_name = backend.gen_script(stage, ast.pipeline[k]['script'], parent_dir)
             
                 # Insert into the Docker template and save.
                 stage += 1
@@ -99,8 +100,14 @@ class DockerGenerator(object):
             docker_file = docker_file.replace("__INSTALL_SCRIPT_STEP__", add_script_cmd)
             docker_file = docker_file.replace("__DEFAULT_CMD_STEP__", default_script_cmd)            
 
-        print "Compiling Dockerfile"
+        print "Creating Dockerfile"
         docker_file_name = "Dockerfile_stage_%s" % stage        
         with open("pipeline/" + docker_file_name, "w") as f:
             f.write(docker_file)
-            
+
+
+    def _compile_docker_file(self, docker_file, image_name):
+        """
+        Compile the Dockerfile. 
+        """        
+        print "compiling dockerfile"
