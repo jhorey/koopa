@@ -72,16 +72,23 @@ class DockerGenerator(object):
             
                 # Insert into the Docker template and save.
                 stage += 1
-                self._write_docker_file(stage, install_cmds, file_name)
+                self._write_docker_file(stage, install_cmds, file_name, mode)
 
-    def _write_docker_file(self, stage, install_cmds, execute_file):
+    def _write_docker_file(self, stage, install_cmds, execute_file, mode):
         """
         Create a Dockerfile to run this pipeline stage. 
         """
 
         print "Reading Dockerfile template"
+
+        # Make sure the Dockerfile template exists.
+        docker_template = "config/%s/Dockerfile.template" % mode        
+        if not os.path.isfile(docker_template):
+            print "could not find %s" % docker_template
+            return None
+        
         docker_file = ""
-        with open("config/Dockerfile.template", "r") as f:
+        with open(docker_template, "r") as f:
             docker_file = f.read()
 
             add_script_cmd = "ADD ./%s /scripts/" % execute_file

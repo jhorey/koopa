@@ -1,0 +1,11 @@
+FROM ubuntu:14.04
+
+RUN apt-get update; apt-get --yes install python-dev python-pip python-pandas python-sklearn
+
+RUN mkdir -p /scripts /logs
+
+__INSTALL_PACKAGE_STEP__
+
+__INSTALL_SCRIPT_STEP__
+
+__INSTALL_CMD_STEP__
