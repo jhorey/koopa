@@ -34,7 +34,7 @@ class DrakeParser(object):
                 else:
                     input_str = io_list[0]
 
-                replacements[match] = input_str
+                replacements[match.strip()] = input_str
 
             for r in replacements.keys():
                 c = c.replace(r, replacements[r])
@@ -49,15 +49,15 @@ class DrakeParser(object):
         
         if script_type == None or script_type == "bash":
             # Shell scripts use the simple $INPUT[n], $OUTPUT[n] style.
-            keywords = ["(\$INPUT.*)", "(\$OUTPUT.*)"]
+            keywords = ["(\$INPUT.?)", "(\$OUTPUT.?)"]
         else:
             # Otherwise, we have to use square brackets.
-            keywords = ["(\$\[INPUT.*\])", "(\$\[OUTPUT.*\])"]
-
+            keywords = ["(\$\[INPUT.?\])", "(\$\[OUTPUT.?\])"]
+                    
         # Make the keyword substitutions
-        content = self.get_io_substitution(keywords[0], inputs, content)
+        content = self.get_io_substitution(keywords[0], inputs, content)        
         content = self.get_io_substitution(keywords[1], outputs, content)
-
+        
         return content
 
     def is_segment_header(self, line):
@@ -92,20 +92,20 @@ class DrakeParser(object):
         # First capture the inputs.
         io_split = line.split("<-")
 
-        inputs = io_split[0].split(",")
-        inputs = [i.strip() for i in inputs]
+        outputs = io_split[0].split(",")
+        outputs = [i.strip() for i in outputs]
 
         # Before we can capture the outputs, we can need to capture the options.
         # Options have [] brackets around them and only appear after the outputs.
         s = io_split[1].find('[')
         if s > -1:
             options = self.parse_job_options(io_split[1][s:].split(" "))
-            outputs = io_split[1][:s].split(",")
+            inputs = io_split[1][:s].split(",")
         else:
             options = {}
-            outputs = io_split[1].split(",")
+            inputs = io_split[1].split(",")
 
-        outputs = [i.strip() for i in outputs]
+        inputs = [i.strip() for i in inputs]
         return inputs, outputs, options
 
     def _count_leading_spaces(self, line):

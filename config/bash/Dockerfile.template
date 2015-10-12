@@ -1,11 +1,14 @@
 FROM ubuntu:14.04
 
-RUN apt-get update; apt-get --yes install python-dev python-pip python-pandas python-sklearn
+RUN apt-get update
 
 RUN mkdir -p /scripts /logs
 
+# Install any packages
 __INSTALL_PACKAGE_STEP__
 
+# Add the actual script that will run
 __INSTALL_SCRIPT_STEP__
 
-__INSTALL_CMD_STEP__
+# Make the script the default command
+__DEFAULT_CMD_STEP__
