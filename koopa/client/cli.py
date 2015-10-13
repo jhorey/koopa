@@ -15,6 +15,7 @@
 
 import json
 import koopa
+from koopa.generator.test import TestGenerator
 from koopa.generator.docker import DockerGenerator
 from koopa.pipeline.test import Test
 from koopa.pipeline.luigi import Luigi

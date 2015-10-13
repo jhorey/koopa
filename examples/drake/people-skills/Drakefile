@@ -18,7 +18,7 @@
 ;   Maverick Lou,java clojure jenkins
 ;
 skills.filtered <- skills
-  grep -v BAD $INPUT > $OUTPUT
+  grep -v BAD $INPUT > $OUTPUT || :
 
 ;
 ; Starts with people formatted like...

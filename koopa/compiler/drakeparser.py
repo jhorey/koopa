@@ -26,7 +26,7 @@ class DrakeParser(object):
             for match in matches:                
                 char = match[-1]
                 if char == 'N':
-                    input_str = len(io_list)
+                    input_str = str(len(io_list))
                 elif char == 'S':
                     input_str = ' '.join(io_list)
                 elif char.isdigit():

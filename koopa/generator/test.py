@@ -25,8 +25,6 @@ class TestGenerator(object):
         """
         Take the Drakefile and create a set of Docker images for each pipeline stage. Then generate a Luigi job that can process this Docker-based pipeline.
         """
-        
-        print "Using Drakefile " + drakefile
 
         pipeline = []        
         parent_dir = os.path.dirname(os.path.abspath(drakefile))
@@ -36,7 +34,13 @@ class TestGenerator(object):
             stage = 0
             ast = self.parser.generate_ast(f.read())
             for k in ast.pipeline.keys():
+                if not 'script' in ast.pipeline[k]['options']:
+                    mode = "bash"
+                else:
+                    mode = ast.pipeline[k]['options']['script']
+                    
                 pipeline.append( {'stage': ast.pipeline[k]['script'],
-                                  'script': ast.pipeline[k]['options']['script'],
+                                  'script': mode,
+                                  'dir': parent_dir, 
                                   'io': k} )
         return pipeline

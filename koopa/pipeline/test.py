@@ -14,10 +14,12 @@
 #
 
 import logging
+import os
+import shutil
 from subprocess import Popen, PIPE
 
 class Test(object):
-
+    
     def generate_plan(self, pipeline):
         """
         The Test engine pipeline just takes the Drakefile and strips all
@@ -26,20 +28,42 @@ class Test(object):
 
         stripped_file = open("pipeline/Drakefile", "w")
         for stage in pipeline:
+
             output_files = ",".join(stage['io'].output_files)
             input_files = ",".join(stage['io'].input_files)
-            stripped_file.write("%s <- %s [%s]" % (output_files, input_files, stage['script']))
+            
+            if stage['script'] == "bash":
+                option = ""
+            else:
+                option = "[%s]" % stage['script']
+                
+            stripped_file.write("%s <- %s %s\n" % (output_files, input_files, option))
             for s in stage['stage']:
-                stripped_file.write("    %s" % s)
+                stripped_file.write("    %s\n" % s)
 
-        stripped_file.close()        
-        return "pipeline/Drakefile"
+            stripped_file.write("\n")
+
+        stripped_file.close()
+        return { 'drake': 'pipeline/Drakefile',
+                 'base': stage['dir'] }
     
     def execute(self, pipeline=None, server="local"):
         """
         For the Test engine, the only thing we need is the original Drakefile. 
         """
-        cmd = "drake -w %s" % pipeline
+
+        # Copy over any necessary output files to the same place as our Drakefile.
+        # Otherwise Drake will throw a fit. 
+        drake_dir = os.path.dirname(pipeline['drake'])
+        input_dir = pipeline['base']
+        for f in os.listdir(input_dir):
+            if f != "Drakefile":
+                shutil.copyfile(os.path.join(input_dir, f),
+                                os.path.join(drake_dir, f))
+        
+        cmd = "drake -a --base %s -w %s" % (os.path.abspath("pipeline"), pipeline['drake'])
+        print cmd
+        
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         
         print "stdout >> " + proc.stdout.read()
