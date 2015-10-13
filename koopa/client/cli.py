@@ -16,11 +16,11 @@
 import json
 import koopa
 from koopa.generator.docker import DockerGenerator
-from koopa.generator.luigigenerator import LuigiGenerator
+from koopa.pipeline.test import Test
 from koopa.pipeline.luigi import Luigi
+from koopa.pipeline.drake import Drake
 from koopa.client.options import CmdHelp
 import logging
-import logging.config
 import os
 import sys
 
@@ -44,17 +44,32 @@ def compile_and_execute(drakefile=None):
     if not drakefile:
         drakefile = os.getcwd() + "/Drakefile"
 
-    # Check which backend we are targetting.
-    if config["BACKEND"] == "DOCKER":
-        docker = DockerGenerator()
-        pipeline = docker.compile(drakefile)
-    else:
-        luigi_gen = LuigiGenerator()
-        luigi = Luigi()
-        pipeline = luigi_gen.compile(drakefile)
-        luigi.execute(pipeline=pipeline,
-                      server="local")
-
+    # How are we going to execute the Drakefile? 
+    if config["PIPELINE"] == "TEST":
+        # We are going to just execute the Drakefile as-is without
+        # compilation, etc. This is just used for testing purposes.
+        engine = Test()
+    elif config["PIPELINE"] == "DRAKE":
+        # We are using the Drake execution engine.
+        engine = Drake()
+    elif config["PIPELINE"] == "LUIGI":
+        # We are using the Luigi execution engine. 
+        engine = Luigi()
+            
+    # Now we need to know how to compile the Drakefile. 
+    if config["COMPILE"] == "TEST":
+        # Generate a set of Docker images that does the actual execution. 
+        generator = TestGenerator()
+    elif config["COMPILE"] == "DOCKER":
+        # Generate a set of Docker images that does the actual execution. 
+        generator = DockerGenerator()
+            
+    # Pass the pipeline information to the engine so that it can
+    # generate the execution plan.
+    pipeline = generator.compile(drakefile)    
+    plan = engine.generate_plan(pipeline)
+    engine.execute(pipeline=plan)
+                            
 class CLI(object):
     def __init__(self):
         self.cmds = CmdHelp()

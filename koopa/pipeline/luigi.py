@@ -14,10 +14,15 @@
 #
 
 import logging
-import logging.config
 
 class Luigi(object):
 
+    def generate_plan(self, pipeline):
+        """
+        Generate a Luigi-based execution plan. 
+        """
+        return None
+    
     def execute(self, pipeline=None, server="local"):
         """
         Execute the Luigi scripts.

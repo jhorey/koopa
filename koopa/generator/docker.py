@@ -22,7 +22,7 @@ from koopa.generator.bash import BashGenerator
 import logging
 import logging.config
 import os
-from subprocess import call
+from subprocess import Popen, PIPE
 
 class DockerGenerator(object):
     parser = DrakeParser()
@@ -33,7 +33,10 @@ class DockerGenerator(object):
         """
         
         print "Using Drakefile " + drakefile
-        parent_dir = os.path.dirname(drakefile)        
+
+        pipeline = []        
+        parent_dir = os.path.dirname(os.path.abspath(drakefile))
+        working_dir = parent_dir.split("/")[-1]
         with open(drakefile) as f:
             # Parse the AST and get the dependency graph.
             stage = 0
@@ -42,8 +45,6 @@ class DockerGenerator(object):
                 # Choose which Dockerfile template to use given the script type.
                 # These templates specify how to install packages and how to wrap the
                 # commands into the appropriate files.
-                print str(ast.pipeline[k]['options'])
-
                 if not 'script' in ast.pipeline[k]['options']:
                     mode = "bash"
                 else:
@@ -62,7 +63,6 @@ class DockerGenerator(object):
                     # Unsupported mode.
                     print "Unsupported script type " + mode
                     return None
-
             
                 # Generate the installation procedure.
                 install_cmds = []
@@ -74,7 +74,14 @@ class DockerGenerator(object):
             
                 # Insert into the Docker template and save.
                 stage += 1
-                self._write_docker_file(stage, install_cmds, file_name, mode)
+                docker_file = self._write_docker_file(stage, install_cmds, file_name, mode)
+
+                # Compile the Dockerfile.
+                image_name = "cirrus/%s_stage_%d" % (working_dir, stage)
+                pipeline.append( {'image': image_name,
+                                 'io': k} )
+                self._compile_docker_file("pipeline/" + docker_file, image_name)
+        return pipeline
 
     def _write_docker_file(self, stage, install_cmds, execute_file, mode):
         """
@@ -93,7 +100,7 @@ class DockerGenerator(object):
         with open(docker_template, "r") as f:
             docker_file = f.read()
 
-            add_script_cmd = "ADD ./%s /scripts/" % execute_file
+            add_script_cmd = "ADD ./pipeline/%s /scripts/" % execute_file
             default_script_cmd = "CMD [\"/scripts/%s\"]" % execute_file            
             
             docker_file = docker_file.replace("__INSTALL_PACKAGE_STEP__", "\n".join(install_cmds))
@@ -105,9 +112,17 @@ class DockerGenerator(object):
         with open("pipeline/" + docker_file_name, "w") as f:
             f.write(docker_file)
 
-
+        return docker_file_name
+    
     def _compile_docker_file(self, docker_file, image_name):
         """
         Compile the Dockerfile. 
         """        
         print "compiling dockerfile"
+        cmd = "docker build -f %s -t %s ." % (docker_file, image_name)
+        print "cmd >> " + cmd
+        
+        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+        
+        print "stdout >> " + proc.stdout.read()
+        print "stderr >> " + proc.stderr.read()        
