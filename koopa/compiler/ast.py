@@ -24,7 +24,8 @@ class PipelineAST(object):
 
     """
     pipeline = OrderedDict()
-
+    workflow_options = {}
+    
     def add_pipeline_step(self, io_lists, drake_script):
         """
         Add a new pipeline step.

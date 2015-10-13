@@ -25,8 +25,16 @@ class Test(object):
         The Test engine pipeline just takes the Drakefile and strips all
         the Koopa-specific options. 
         """
+        
+        workdir = "pipeline"
+        if len(pipeline) > 0 and 'workdir' in pipeline[0]['header']:
+            workdir = pipeline[0]['header']['workdir']
 
-        stripped_file = open("pipeline/Drakefile", "w")
+        # Check if we need to create the working directory.
+        if not os.path.isdir(workdir):
+            os.mkdir(workdir)
+            
+        stripped_file = open(os.path.join(workdir, 'Drakefile'), "w")
         for stage in pipeline:
 
             output_files = ",".join(stage['io'].output_files)
@@ -44,7 +52,8 @@ class Test(object):
             stripped_file.write("\n")
 
         stripped_file.close()
-        return { 'drake': 'pipeline/Drakefile',
+        return { 'drake': os.path.join(workdir, 'Drakefile'),
+                 'workdir': workdir,
                  'base': stage['dir'] }
     
     def execute(self, pipeline=None, server="local"):
@@ -61,7 +70,7 @@ class Test(object):
                 shutil.copyfile(os.path.join(input_dir, f),
                                 os.path.join(drake_dir, f))
         
-        cmd = "drake -a --base %s -w %s" % (os.path.abspath("pipeline"), pipeline['drake'])
+        cmd = "drake -a --base %s -w %s" % (os.path.abspath(pipeline['workdir']), pipeline['drake'])
         print cmd
         
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)

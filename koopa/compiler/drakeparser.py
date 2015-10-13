@@ -60,6 +60,12 @@ class DrakeParser(object):
         
         return content
 
+    def is_workflow_header(self, line):
+        """
+        Treat lines starting with ;;; as part of the workflow header. 
+        """
+        return line[:3] == ";;;"
+            
     def is_segment_header(self, line):
         """
         Indicate whether the line is a segment header.
@@ -74,6 +80,10 @@ class DrakeParser(object):
         """
         return line[0] == ' ' or line[0] == '\t'
 
+    def parse_workflow_header(self, line):
+        s = line.split(":-")
+        return tuple( [s[0][3:].strip(), s[1].strip()] )
+        
     def parse_job_options(self, option_values):
         options = {}
         for v in option_values:
@@ -133,7 +143,11 @@ class DrakeParser(object):
             if line.strip() == "":
                 continue
 
-            if self.is_segment_header(line):
+            if self.is_workflow_header(line):
+                # This is part of the workflow header.
+                key, value = self.parse_workflow_header(line)
+                ast.workflow_options[key] = value                
+            elif self.is_segment_header(line):
                 # We are parsing a new pipeline stage. Check if we need to add a prior
                 # stage, and then proceed to parsing the actual stage information.
 

@@ -33,14 +33,18 @@ class TestGenerator(object):
             # Parse the AST and get the dependency graph.
             stage = 0
             ast = self.parser.generate_ast(f.read())
+
+            print str(ast.workflow_options)
+            
             for k in ast.pipeline.keys():
                 if not 'script' in ast.pipeline[k]['options']:
                     mode = "bash"
                 else:
                     mode = ast.pipeline[k]['options']['script']
-                    
+                
                 pipeline.append( {'stage': ast.pipeline[k]['script'],
                                   'script': mode,
                                   'dir': parent_dir, 
-                                  'io': k} )
+                                  'io': k,
+                                  'header': ast.workflow_options} )
         return pipeline
