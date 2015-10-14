@@ -16,7 +16,8 @@
 import json
 import koopa
 from koopa.generator.test import TestGenerator
-from koopa.generator.docker import DockerGenerator
+from koopa.generator.docker import SingleDockerGenerator
+from koopa.generator.docker import MultiDockerGenerator
 from koopa.pipeline.test import Test
 from koopa.pipeline.luigi import Luigi
 from koopa.pipeline.drake import Drake
@@ -63,13 +64,13 @@ def compile_and_execute(drakefile=None):
         generator = TestGenerator()
     elif config["COMPILE"] == "DOCKER":
         # Generate a set of Docker images that does the actual execution. 
-        generator = DockerGenerator()
+        generator = SingleDockerGenerator()
             
     # Pass the pipeline information to the engine so that it can
     # generate the execution plan.
     pipeline = generator.compile(drakefile)    
-    plan = engine.generate_plan(pipeline)
-    engine.execute(pipeline=plan)
+    # plan = engine.generate_plan(pipeline)
+    # engine.execute(pipeline=plan)
                             
 class CLI(object):
     def __init__(self):

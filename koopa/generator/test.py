@@ -22,19 +22,12 @@ class TestGenerator(object):
     parser = DrakeParser()
 
     def compile(self, drakefile):
-        """
-        Take the Drakefile and create a set of Docker images for each pipeline stage. Then generate a Luigi job that can process this Docker-based pipeline.
-        """
-
         pipeline = []        
         parent_dir = os.path.dirname(os.path.abspath(drakefile))
         working_dir = parent_dir.split("/")[-1]
         with open(drakefile) as f:
-            # Parse the AST and get the dependency graph.
             stage = 0
             ast = self.parser.generate_ast(f.read())
-
-            print str(ast.workflow_options)
             
             for k in ast.pipeline.keys():
                 if not 'script' in ast.pipeline[k]['options']:

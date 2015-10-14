@@ -16,6 +16,7 @@
 from collections import OrderedDict
 from koopa.compiler.drakeparser import DrakeParser
 from koopa.generator.dependencygraph import DependencyGraph
+from koopa.generator.dockerutils import *
 from koopa.generator.python import PythonGenerator
 from koopa.generator.rlang import RGenerator
 from koopa.generator.bash import BashGenerator
@@ -23,17 +24,94 @@ import logging
 import logging.config
 import os
 from subprocess import Popen, PIPE
+import shutil
 
-class DockerGenerator(object):
+class SingleDockerGenerator(object):
+    parser = DrakeParser()
+
+    def create_drakefile(self, pipeline):        
+        workdir = "pipeline"
+        if len(pipeline) > 0 and 'workdir' in pipeline[0]['header']:
+            workdir = pipeline[0]['header']['workdir']
+
+        # Check if we need to create the working directory.
+        if not os.path.isdir(workdir):
+            os.mkdir(workdir)
+            
+        stripped_file = open(os.path.join(workdir, 'Drakefile'), "w")
+        for stage in pipeline:
+
+            output_files = ",".join(stage['io'].output_files)
+            input_files = ",".join(stage['io'].input_files)
+            
+            if stage['script'] == "bash":
+                option = ""
+            else:
+                option = "[%s]" % stage['script']
+                
+            stripped_file.write("%s <- %s %s\n" % (output_files, input_files, option))
+            for s in stage['stage']:
+                stripped_file.write("    %s\n" % s)
+
+            stripped_file.write("\n")
+            
+    def compile(self, drakefile):
+        pipeline = []        
+        parent_dir = os.path.dirname(os.path.abspath(drakefile))
+        working_dir = parent_dir.split("/")[-1]
+        with open(drakefile) as f:
+            stage = 0
+            ast = self.parser.generate_ast(f.read())
+            
+        for k in ast.pipeline.keys():
+            if not 'script' in ast.pipeline[k]['options']:
+                mode = "bash"
+            else:
+                mode = ast.pipeline[k]['options']['script']
+           
+            pipeline.append( {'stage': ast.pipeline[k]['script'],
+                              'script': mode,
+                              'dir': parent_dir, 
+                              'io': k,
+                              'header': ast.workflow_options} )
+
+        # First thing to do is to clone the repository.
+        package_name = ast.workflow_options['package'].split("/")[-1].split(".")[0]         
+        clone_git_repo(ast.workflow_options['package'], "pipeline/%s/" % package_name)
+        
+        # Now we're going to add the source code to the Docker image. 
+        install_cmds = [ "ADD ./pipeline/%s /scripts/" % package_name,
+                         "WORKDIR /scripts/%s" % package_name,
+                         "RUN %s" % ast.workflow_options['setup'] ]
+
+        # Copy over any necessary output files to the same place.
+        copy_cmds = []
+        for f in os.listdir(parent_dir):
+            if f != "Drakefile":
+                shutil.copyfile(os.path.join(parent_dir, f),
+                                os.path.join("pipeline", f))
+                copy_cmds.append( "ADD ./pipeline/%s /scripts/" % f)
+
+        # Create our sanitized Drakefile. 
+        self.create_drakefile(pipeline)
+        copy_cmds.append( "ADD ./pipeline/Drakefile /scripts/")
+        
+        # The actual execution script will be running Drake.
+        default_cmd = "CMD [\"drake -a --base /scripts -w /scripts/Drakefile\"]"
+
+        # Write out the actual dockerfile. 
+        docker_file = write_docker_file(0, install_cmds, copy_cmds, default_cmd, "python")
+
+        # Compile the Dockerfile.
+        # image_name = "cirrus/%s_stage_%d" % (working_dir, stage)
+        # compile_docker_file("pipeline/" + docker_file, image_name)
+            
+        return pipeline
+    
+class MultiDockerGenerator(object):
     parser = DrakeParser()
 
     def compile(self, drakefile):
-        """
-        Take the Drakefile and create a set of Docker images for each pipeline stage. Then generate a Luigi job that can process this Docker-based pipeline.
-        """
-        
-        print "Using Drakefile " + drakefile
-
         pipeline = []        
         parent_dir = os.path.dirname(os.path.abspath(drakefile))
         working_dir = parent_dir.split("/")[-1]
@@ -74,55 +152,13 @@ class DockerGenerator(object):
             
                 # Insert into the Docker template and save.
                 stage += 1
-                docker_file = self._write_docker_file(stage, install_cmds, file_name, mode)
+                add_script_cmd = ["ADD ./pipeline/%s /scripts/" % file_name]
+                default_cmd = "CMD [\"/scripts/%s\"]" % file_name
+                docker_file = write_docker_file(stage, install_cmds, add_script_cmd, default_cmd, mode)
 
                 # Compile the Dockerfile.
                 image_name = "cirrus/%s_stage_%d" % (working_dir, stage)
                 pipeline.append( {'image': image_name,
                                  'io': k} )
-                self._compile_docker_file("pipeline/" + docker_file, image_name)
+                compile_docker_file("pipeline/" + docker_file, image_name)
         return pipeline
-
-    def _write_docker_file(self, stage, install_cmds, execute_file, mode):
-        """
-        Create a Dockerfile to run this pipeline stage. 
-        """
-
-        print "Reading Dockerfile template"
-
-        # Make sure the Dockerfile template exists.
-        docker_template = "config/%s/Dockerfile.template" % mode        
-        if not os.path.isfile(docker_template):
-            print "could not find %s" % docker_template
-            return None
-        
-        docker_file = ""
-        with open(docker_template, "r") as f:
-            docker_file = f.read()
-
-            add_script_cmd = "ADD ./pipeline/%s /scripts/" % execute_file
-            default_script_cmd = "CMD [\"/scripts/%s\"]" % execute_file            
-            
-            docker_file = docker_file.replace("__INSTALL_PACKAGE_STEP__", "\n".join(install_cmds))
-            docker_file = docker_file.replace("__INSTALL_SCRIPT_STEP__", add_script_cmd)
-            docker_file = docker_file.replace("__DEFAULT_CMD_STEP__", default_script_cmd)            
-
-        print "Creating Dockerfile"
-        docker_file_name = "Dockerfile_stage_%s" % stage        
-        with open("pipeline/" + docker_file_name, "w") as f:
-            f.write(docker_file)
-
-        return docker_file_name
-    
-    def _compile_docker_file(self, docker_file, image_name):
-        """
-        Compile the Dockerfile. 
-        """        
-        print "compiling dockerfile"
-        cmd = "docker build -f %s -t %s ." % (docker_file, image_name)
-        print "cmd >> " + cmd
-        
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
-        
-        print "stdout >> " + proc.stdout.read()
-        print "stderr >> " + proc.stderr.read()        

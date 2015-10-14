@@ -1,8 +1,14 @@
 FROM ubuntu:14.04
 
-RUN apt-get update; apt-get --yes install python-dev python-pip python-pandas python-sklearn
+RUN apt-get update; apt-get --yes install python-dev python-pip python-pandas python-sklearn openjdk-7-jdk wget
 
 RUN mkdir -p /scripts /logs
+
+# Install Drake
+WORKDIR /scripts
+RUN wget https://raw.githubusercontent.com/Factual/drake/master/bin/drake
+RUN chmod a+x drake
+RUN mv drake /usr/local/bin/
 
 # Install any packages
 __INSTALL_PACKAGE_STEP__
